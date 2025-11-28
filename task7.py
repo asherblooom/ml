@@ -61,14 +61,14 @@ grid_search = GridSearchCV(
     verbose=2
 )
 
-grid_search.fit(X_train, y_train)
+grid_search.fit(X_train_reduced, y_train)
 print(f"\nBest Parameters found: {grid_search.best_params_}")
 print(f"Best Cross-Validation Accuracy: {grid_search.best_score_:.4f}")
 
 best_svm = grid_search.best_estimator_
-best_svm.fit(X_train, y_train)
+best_svm.fit(X_train_reduced, y_train)
 
 # Evaluate on Test Set
-y_pred = best_svm.predict(X_test)
+y_pred = best_svm.predict(X_test_reduced)
 test_acc = accuracy_score(y_test, y_pred)
 print(f"Final Test Set Accuracy: {test_acc:.4f}")

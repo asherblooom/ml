@@ -41,7 +41,7 @@ X_test_reduced = pca.transform(X_test)
 # We use a smaller grid here to keep execution time reasonable.
 # For a rigorous search, you can expand these ranges.
 param_grid = {
-    'max_depth': [11, 20, None],  # None means unlimited depth
+    'max_depth': [10, 20, 30, None],  # None means unlimited depth
     # 'min_samples_split': [2, 10, 20],
     # 'min_samples_leaf': [1, 10, 20],
     'criterion': ['gini', 'entropy'],
@@ -60,14 +60,14 @@ grid_search = GridSearchCV(
     verbose=2
 )
 
-grid_search.fit(X_train, y_train)
+grid_search.fit(X_train_reduced, y_train)
 print(f"\nBest Parameters found: {grid_search.best_params_}")
 print(f"Best Cross-Validation Accuracy: {grid_search.best_score_:.4f}")
 
 best_clf = grid_search.best_estimator_
-best_clf.fit(X_train, y_train)
+best_clf.fit(X_train_reduced, y_train)
 
 # Evaluate on Test Set
-y_pred = best_clf.predict(X_test)
+y_pred = best_clf.predict(X_test_reduced)
 test_acc = accuracy_score(y_test, y_pred)
 print(f"Final Test Set Accuracy: {test_acc:.4f}")
