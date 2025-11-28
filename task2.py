@@ -19,7 +19,8 @@ categorical_cols = ['sex', 'smoker', 'region']
 numerical_cols = ['age', 'bmi', 'children']
 preprocessor = ColumnTransformer(
     transformers=[('cat', OneHotEncoder(drop='first'), categorical_cols), 
-                  ('num', StandardScaler(), numerical_cols)]
+                  ('num', StandardScaler(), numerical_cols)],
+    verbose_feature_names_out=False
 )
 y_scaler = StandardScaler()
 

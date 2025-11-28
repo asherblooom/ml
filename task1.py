@@ -17,7 +17,8 @@ categorical_cols = ['sex', 'smoker', 'region']
 numerical_cols = ['age', 'bmi', 'children']
 preprocessor = ColumnTransformer(
     transformers=[('cat', OneHotEncoder(drop='first'), categorical_cols), 
-                  ('num', StandardScaler(), numerical_cols)]
+                  ('num', StandardScaler(), numerical_cols)],
+    verbose_feature_names_out=False
 )
 
 # Split into training and testing sets (80% / 20%)
@@ -31,13 +32,10 @@ X_test_processed = preprocessor.transform(X_test)
 regr = LinearRegression()
 regr.fit(X_train_processed, y_train)
 
-# get and clean up feature names (remove 'num__' and 'cat__' prefixes)
-feature_names = preprocessor.get_feature_names_out()
-clean_names = [name.split('__')[-1] for name in feature_names]
-
 # print coefficients
+feature_names = preprocessor.get_feature_names_out()
 coef_df = pd.DataFrame({
-    'Feature': clean_names,
+    'Feature': feature_names,
     'Coefficient': regr.coef_
 })
 print("Learned Coefficients:")
