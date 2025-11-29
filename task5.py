@@ -2,9 +2,10 @@ import pickle
 import numpy as np
 import os
 from sklearn.decomposition import PCA
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
+from scipy.stats import randint
 
 def load_batch(batch_path):
     with open(batch_path, 'rb') as f:
@@ -64,7 +65,7 @@ random_search.fit(X_train_reduced, y_train)
 print(f"\nBest Parameters found: {random_search.best_params_}")
 print(f"Best Cross-Validation Accuracy: {random_search.best_score_:.4f}")
 
-best_clf = grid_search.best_estimator_
+best_clf = random_search.best_estimator_
 # best_clf.fit(X_train_reduced, y_train)
 
 # Evaluate on Test Set

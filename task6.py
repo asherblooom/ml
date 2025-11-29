@@ -2,9 +2,10 @@ import pickle
 import numpy as np
 import os
 from sklearn.decomposition import PCA
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.metrics import accuracy_score
+from scipy.stats import randint, uniform
 
 def load_batch(batch_path):
     with open(batch_path, 'rb') as f:
@@ -69,6 +70,7 @@ y_pred_rf = best_rf.predict(X_test_reduced)
 rf_acc = accuracy_score(y_test, y_pred_rf)
 
 print(f"Best RF Params: {rs_rf.best_params_}")
+print(f"Best Cross-Validation Accuracy: {rs_rf.best_score_:.4f}")
 print(f"Random Forest Test Accuracy: {rf_acc:.4f}%")
 
 # ADABOOST
@@ -91,7 +93,7 @@ rs_ada = RandomizedSearchCV(
         verbose=2,
         n_jobs=-1,
 )
-grid_ada.fit(X_train_reduced, y_train)
+rs_ada.fit(X_train_reduced, y_train)
 
 # Evaluation
 best_ada = rs_ada.best_estimator_
@@ -100,6 +102,7 @@ y_pred_ada = best_ada.predict(X_test_reduced)
 ada_acc = accuracy_score(y_test, y_pred_ada)
 
 print(f"Best AdaBoost Params: {rs_ada.best_params_}")
+print(f"Best Cross-Validation Accuracy: {rs_ada.best_score_:.4f}")
 print(f"AdaBoost Test Accuracy: {ada_acc:.4f}%")
 
 print("\n--- Final Results ---")

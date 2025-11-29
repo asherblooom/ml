@@ -4,3 +4,4 @@
 - in report task 1, check if 'Intercept' is a valid feature and should be included. Also check for task3.py whether we need real dollar values
 - check if we should be commenting on bayseian linear regression for report task 2 or not (probably not...)
 - finalise and polish task 1 report
+- remove commented out '.fit' in all task 2 code, if it truly makes no difference because the randomised CV does it for us (as ai says)

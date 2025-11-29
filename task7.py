@@ -2,9 +2,10 @@ import pickle
 import numpy as np
 import os
 from sklearn.decomposition import PCA
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
+from scipy.stats import reciprocal
 
 def load_batch(batch_path):
     with open(batch_path, 'rb') as f:
