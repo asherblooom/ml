@@ -1,3 +1,4 @@
 - improve neural network using techniques from lab
 - check all files for comments etc.
 - pick best enesmble method ??
+- check random search CV works and check distributions are okay - think they are using scipi.stats package. need to pick different one a la labs??
