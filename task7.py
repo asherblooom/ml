@@ -42,31 +42,34 @@ X_test_reduced = pca.transform(X_test)
 # C: Regularization parameter (trade-off between correct classification and margin size)
 # gamma: Kernel coefficient (defines how far the influence of a single training example reaches)
 # kernel: We focus on 'rbf' (Radial Basis Function) as it generally performs best for image data.
-param_grid = {
-        'C': [1, 10, 100], 
-        'kernel': ['rbf'],  # 'linear' is often too simple, 'poly' is very slow
-        'gamma': ['scale', 0.001, 0.01]
+# We use 'reciprocal' for C and gamma. This creates a log-uniform distribution.
+# It allows the search to explore 0.01, 0.1, 1, 10, 100 with equal probability.
+param_dist = {
+    'C': reciprocal(0.1, 1000),      # Regularization: Searches between 0.1 and 1000
+    'gamma': reciprocal(0.0001, 0.1),# Kernel Coefficient: Searches between 0.0001 and 0.1
+    'kernel': ['rbf'],               # RBF is standard for images. 'poly' is extremely slow on this data size.
 }
 
 svc = SVC()
 
 # Perform Cross-Validation
 # n_jobs=-1 uses all available processor cores
-grid_search = GridSearchCV(
+random_search = RandomizedSearchCV(
     estimator=svc, 
-    param_grid=param_grid, 
-    cv=3,               # 3-fold cross-validation
+    param_distributions=param_dist, 
+    n_iter=20,          # Try 20 random combinations
+    cv=3,               # 3-fold CV
     scoring='accuracy', 
-    n_jobs=-1,
-    verbose=2
+    n_jobs=-1,          # Use all cores
+    verbose=2,
 )
 
-grid_search.fit(X_train_reduced, y_train)
-print(f"\nBest Parameters found: {grid_search.best_params_}")
-print(f"Best Cross-Validation Accuracy: {grid_search.best_score_:.4f}")
+random_search.fit(X_train_reduced, y_train)
+print(f"\nBest Parameters found: {random_search.best_params_}")
+print(f"Best Cross-Validation Accuracy: {random_search.best_score_:.4f}")
 
-best_svm = grid_search.best_estimator_
-best_svm.fit(X_train_reduced, y_train)
+best_svm = random_search.best_estimator_
+# best_svm.fit(X_train_reduced, y_train)
 
 # Evaluate on Test Set
 y_pred = best_svm.predict(X_test_reduced)

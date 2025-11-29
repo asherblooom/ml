@@ -1,0 +1,3 @@
+- improve neural network using techniques from lab
+- check all files for comments etc.
+- pick best enesmble method ??

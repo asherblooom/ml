@@ -38,34 +38,34 @@ X_train_reduced = pca.fit_transform(X_train)
 X_test_reduced = pca.transform(X_test)
 
 # Define Hyperparameters to tune
-# We use a smaller grid here to keep execution time reasonable.
-# For a rigorous search, you can expand these ranges.
-param_grid = {
-    'max_depth': [10, 20, 30, None],  # None means unlimited depth
-    # 'min_samples_split': [2, 10, 20],
-    # 'min_samples_leaf': [1, 10, 20],
-    'criterion': ['gini', 'entropy'],
+param_dist = {
+        'criterion': ['gini', 'entropy'],
+        'max_depth': [None, 10, 20, 30, 40, 50],  # Specific options
+        'min_samples_split': randint(2, 50),    # Control node splitting
+        'min_samples_leaf': randint(1, 20),     # Control leaf size
+        'max_features': ['sqrt', 'log2'], # Features to consider at each split
 }
 
 dt_clf = DecisionTreeClassifier()
 
 # Perform Cross-Validation
 # n_jobs=-1 uses all available processor cores
-grid_search = GridSearchCV(
+random_search = RandomizedSearchCV(
     estimator=dt_clf, 
-    param_grid=param_grid, 
+    param_distributions=param_dist, 
+    n_iter=50,          # Number of random combinations to try
     cv=3,               # 3-fold cross-validation
     scoring='accuracy', 
-    n_jobs=-1,
-    verbose=2
+    n_jobs=-1,          # Use all CPU cores
+    verbose=2,
 )
 
-grid_search.fit(X_train_reduced, y_train)
-print(f"\nBest Parameters found: {grid_search.best_params_}")
-print(f"Best Cross-Validation Accuracy: {grid_search.best_score_:.4f}")
+random_search.fit(X_train_reduced, y_train)
+print(f"\nBest Parameters found: {random_search.best_params_}")
+print(f"Best Cross-Validation Accuracy: {random_search.best_score_:.4f}")
 
 best_clf = grid_search.best_estimator_
-best_clf.fit(X_train_reduced, y_train)
+# best_clf.fit(X_train_reduced, y_train)
 
 # Evaluate on Test Set
 y_pred = best_clf.predict(X_test_reduced)
