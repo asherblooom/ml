@@ -22,11 +22,11 @@ def load_cifar10(data_dir):
         X, y = load_batch(batch_path)
         X_all.append(X)
         y_all.append(y)
-        X_train = np.concatenate(X_all)
-        y_train = np.concatenate(y_all)
-        # test batch
-        X_test, y_test = load_batch(os.path.join(data_dir, "test_batch"))
-        return X_train/255, y_train, X_test/255, y_test
+    X_train = np.concatenate(X_all)
+    y_train = np.concatenate(y_all)
+    # test batch
+    X_test, y_test = load_batch(os.path.join(data_dir, "test_batch"))
+    return X_train/255, y_train, X_test/255, y_test
 
 # Load the data
 # You may need to specify ‘data_dir’ the directory of dataset folder
