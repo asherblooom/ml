@@ -5,3 +5,7 @@
 - check if we should be commenting on bayseian linear regression for report task 2 or not (probably not...)
 - finalise and polish task 1 report
 - remove commented out '.fit' in all task 2 code, if it truly makes no difference because the randomised CV does it for us (as ai says)
+
+todo for clustering:
+# TODO: look into using Random/GridSearchCV! - will need to define custom scoring method I think...
+Find out which hyperparameters are most important!
