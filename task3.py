@@ -55,7 +55,7 @@ with pm.Model() as model:
     y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=y)
     
     # --- MCMC Sampling ---
-    idata = pm.sample(draws=2000, tune=1000, chains=2, random_seed=42)
+    idata = pm.sample(2000, chains=4, step=pm.NUTS())
 
 summary = az.summary(idata, var_names=["intercept", "coefficients", "sigma"])
 
@@ -68,14 +68,25 @@ print("-" * 50)
 intercept_mean = summary.loc['intercept', 'mean']
 print(f"{'Intercept':<20} | {intercept_mean:<10.4f} | [{summary.loc['intercept', 'hdi_3%']:.3f}, {summary.loc['intercept', 'hdi_97%']:.3f}]")
 
-# Print Coefficients
-# The summary index for array variables looks like "Coefficients[0]", "Coefficients[1]"
+# 1. Get the scaling factor (Standard Deviation of original charges)
+# y_scaler.scale_ stores the standard deviation (sigma)
+y_std_dev = y_scaler.scale_[0] 
+y_mean = y_scaler.mean_[0]
+
+print("\n" + "="*60)
+print(f"{'Feature':<25} | {'Mean Est.':<12} | {'Real Dollar Impact':<20}")
+print("="*60)
+
+# 2. Iterate and Un-scale
 for i, feature in enumerate(feature_names):
     row_name = f"coefficients[{i}]"
-    mean_val = summary.loc[row_name, 'mean']
-    lower_hdi = summary.loc[row_name, 'hdi_3%']
-    upper_hdi = summary.loc[row_name, 'hdi_97%']
-    print(f"{feature:<20} | {mean_val:<10.4f} | [{lower_hdi:.3f}, {upper_hdi:.3f}]")
-
-print("-" * 50)
-print(f"Noise (Sigma) Mean: {summary.loc['sigma', 'mean']:.4f}")
+    scaled_mean = summary.loc[row_name, 'mean']
+    # convert to dollars
+    dollar_impact = scaled_mean * y_std_dev
+    print(f"{feature:<25} | {scaled_mean:<12.3f} | ${dollar_impact:,.2f}")
+print("-" * 60)
+# The model's sigma is also scaled. We multiply it by y_std_dev to get the prediction error in dollars.
+scaled_sigma = summary.loc['sigma', 'mean']
+dollar_sigma = scaled_sigma * y_std_dev
+print(f"{'Noise (Sigma)':<25} | {scaled_sigma:<12.3f} | ${dollar_sigma:,.2f}")
+print("="*60)

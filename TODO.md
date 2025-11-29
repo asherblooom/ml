@@ -1,4 +1,6 @@
-- improve neural network using techniques from lab
 - check all files for comments etc.
 - pick best enesmble method ??
 - check random search CV works and check distributions are okay - think they are using scipi.stats package. need to pick different one a la labs??
+- in report task 1, check if 'Intercept' is a valid feature and should be included. Also check for task3.py whether we need real dollar values
+- check if we should be commenting on bayseian linear regression for report task 2 or not (probably not...)
+- finalise and polish task 1 report

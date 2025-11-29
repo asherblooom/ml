@@ -27,7 +27,6 @@ y_scaler = StandardScaler()
 # Split into training and testing sets (80% / 20%)
 X_train_raw, X_test_raw, y_train_raw, y_test_raw = train_test_split(X, y, test_size=0.2, random_state=42)
 
-print(y_train_raw.shape)
 # fit preprocessor on training data, then transform both
 X_train = preprocessor.fit_transform(X_train_raw)
 X_test = preprocessor.transform(X_test_raw)
@@ -48,20 +47,25 @@ class NN(nn.Module):
         super().__init__()
         self.layer1 = nn.Linear(input_dim, 32) # Hidden Layer 1
         self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.2)        # Drop 20% of neurons
         self.layer2 = nn.Linear(32, 16)        # Hidden Layer 2
         self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(0.2)
         self.output = nn.Linear(16, 1)         # Output Layer
 
     def forward(self, x):
         x = self.relu1(self.layer1(x))
+        x = self.dropout1(x)
         x = self.relu2(self.layer2(x))
+        x = self.dropout2(x)
         x = self.output(x)
         return x
 
 # Initialise Model
 model = NN(input_dim=X_train.shape[1]).to(device)
 criterion = nn.MSELoss()
-optimiser = optim.Adam(model.parameters(), lr=0.01)
+# weight_decay=1e-4 applies L2 regularization
+optimiser = optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
 
 # Training Loop
 epochs = 500
@@ -86,7 +90,7 @@ with torch.no_grad():
     test_preds_scaled = model(X_test_tensor).numpy()
     train_preds_scaled = model(X_train_tensor).numpy()
 
-# Inverse transform to get actual dollar values
+# Inverse transform to get actual dollar values from standardised values
 test_preds = y_scaler.inverse_transform(test_preds_scaled)
 train_preds = y_scaler.inverse_transform(train_preds_scaled)
 y_test_orig = y_scaler.inverse_transform(y_test)
@@ -97,8 +101,8 @@ train_rmse = np.sqrt(mean_squared_error(y_train_orig, train_preds))
 test_rmse = np.sqrt(mean_squared_error(y_test_orig, test_preds))
 
 print("-" * 30)
-print(f"Training RMSE: ${train_rmse:.2f}")
-print(f"Test RMSE:     ${test_rmse:.2f}")
+print(f"Training RMSE: {train_rmse:.2f}")
+print(f"Test RMSE:     {test_rmse:.2f}")
 
 # Plot Results
 plt.figure()
@@ -107,4 +111,5 @@ plt.plot([y_test_orig.min(), y_test_orig.max()], [y_test_orig.min(), y_test_orig
 plt.xlabel('Actual Charges')
 plt.ylabel('Predicted Charges')
 plt.title('PyTorch NN: Predicted vs Actual')
-plt.show()
+plt.savefig('actual_vs_predicted_plot_nn.png')
+# plt.show()
