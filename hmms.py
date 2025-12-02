@@ -1,87 +1,108 @@
+
 import pandas as pd
 import pymc as pm
-from hmmlearn import hmm
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelEncoder
+import numpy as np
+import seaborn as sns
+from hmmlearn.hmm import CategoricalHMM
+from matplotlib import pyplot as plt
 
-raw_data = pd.read_csv(pm.get_data("deaths_and_temps_england_wales.csv"))
+
+def train_supervised_hmm(states, observations, n_states, n_obs):
+    # Initialize matrices
+    A = np.zeros((n_states, n_states)) # transition matrix
+    B = np.zeros((n_states, n_obs)) # emission matrix
+    pi = np.zeros(n_states) # start probabilities
+
+    # Calculate start probabilities
+    # assume the starting state is just as likely as any random state.
+    # and so, count the occurrence of every state to get the stationary distribution
+    for s in states:
+        pi[s] += 1
+    pi = pi / np.sum(pi)
+
+    # Calculate transitions
+    # Count how many times state i is followed by state j
+    for t in range(len(states) - 1):
+        current_state = states[t]
+        next_state = states[t+1]
+        A[current_state, next_state] += 1
+        
+    # Normalise rows of A (so probabilities sum to 1)
+    # add a tiny epsilon to avoid division by zero if a state never transitions
+    A = (A + 1e-8) / (A + 1e-8).sum(axis=1, keepdims=True)
+
+    # Calculate emissions
+    # Count how many times we see observation o while in state i
+    for t in range(len(states)):
+        current_state = states[t]
+        current_obs = observations[t]
+        B[current_state, current_obs] += 1
+        
+    # Normalise rows of B
+    B = (B + 1e-8) / (B + 1e-8).sum(axis=1, keepdims=True)
+
+    return pi, A, B
 
 
-print(f"Data columns found: {raw_data.columns.tolist()}")
 
-# ---------------------------------------------------------
-# 2. Preprocessing & Discretization
-# ---------------------------------------------------------
 
-# Discretise Deaths into Low, Medium, High
-# used qcut for quantile-based discretisation (equal number of points per bin) to ensure balanced classes for training.
-deaths_discrete = pd.qcut(raw_data['deaths'], q=3, labels=['Low', 'Medium', 'High'])
 
-# Encode these labels to integers (0, 1, 2) for hmmlearn
-le_deaths = LabelEncoder()
-deaths_encoded = le_deaths.fit_transform(deaths_discrete)
 
-# B. Discretize Temperature (Hidden States) into 3 bins
-# The prompt says "the state is the temperature".
-# Since we are training UNSUPERVISED on deaths, we will use this column
-# later to check if the model actually learned these states.
-# Note: Low Temp = Cold, High Temp = Hot.
-temp_discrete = pd.qcut(raw_data['temp'], q=3, labels=['Cold', 'Mild', 'Hot'])
-temp_encoded = LabelEncoder().fit_transform(temp_discrete)
+df = pd.read_csv(pm.get_data("deaths_and_temps_england_wales.csv"))
 
-# We use CategoricalHMM because our observations (Deaths) are discrete categories (0, 1, 2)
-# n_components=3 corresponds to our hypothesis that there are 3 temperature states.
-model = hmm.CategoricalHMM(n_components=3, n_iter=100, random_state=42, init_params='ste')
+temp_discrete = pd.qcut(df['temp'], q=3, labels=False).values.reshape(-1, 1)
+# temp_discrete = temp_discrete.reshape(1, -1)
+# temp_labels = ['Cold', 'Warm', 'Hot']
+deaths_discrete = pd.qcut(df['deaths'], q=3, labels=False).values.reshape(-1, 1)
+# deaths_discrete = deaths_discrete.reshape(1, -1)
+deaths_labels = ['Low', 'Medium', 'High']
 
-# Prepare data for hmmlearn
-# Input must be shape (n_samples, 1)
-X = deaths_encoded.reshape(1, -1)
-lengths = [len(X)]
-model.fit(X, lengths)
+hmm1 = CategoricalHMM(n_components=3)
+pi, A, B = train_supervised_hmm(temp_discrete, deaths_discrete, 3, 3)
+hmm1.startprob_ = pi
+hmm1.transmat_ = A
+hmm1.emissionprob_ = B
 
-# Predict the hidden states (most likely path) given the observed deaths
-hidden_states = model.predict(X)
+hmm2 = CategoricalHMM(3)
+lengths = [len(deaths_discrete)] # we only have one sequence, so we just take the length of that
+hmm2.fit(deaths_discrete, lengths)
 
-plt.figure(figsize=(14, 8))
-# Plot 1: The Actual Data (Temperature) vs The Inferred States
-# Note: The model learns state 0, 1, 2. These might not align perfectly with
-# Cold (0), Mild (1), Hot (2). We might need to permute them visually, 
-# but raw plotting usually reveals the structure.
-plt.subplot(2, 1, 1)
-plt.plot(raw_data['temp'], label='Actual Temperature', color='gray', alpha=0.5)
-plt.title("Actual Temperature Data")
-plt.ylabel("Temperature")
-plt.legend()
+X1_sampled, discard = hmm1.sample(n_samples=10000)
+X2_sampled, discard = hmm2.sample(n_samples=10000)
 
-plt.subplot(2, 1, 2)
-# Plot the Inferred States
-plt.plot(hidden_states, label='HMM Inferred States (from Deaths)', color='blue', marker='o', linestyle='none', alpha = 0.5)
-# Plot the "True" discretized temperature for comparison
-plt.plot(temp_encoded, label='Actual Discretized Temp (Ground Truth)', color='red', marker='o', linestyle='none', alpha = 0.5)
 
-plt.title("Comparison: HMM Inferred States vs Actual Temperature Categories")
-plt.ylabel("State / Category (0, 1, 2)")
-plt.xlabel("Time (Months)")
-plt.yticks([0, 1, 2], ['State 0', 'State 1', 'State 2'])
-plt.legend()
+
+
+# Plot distributions
+data_orig = deaths_discrete.flatten()
+data_hmm1 = X1_sampled.flatten()
+data_hmm2 = X2_sampled.flatten()
+
+categories = [0, 1, 2]
+labels = ['Low', 'Medium', 'High']
+
+# List comprehensions to calculate the probability of each category
+probs_orig = [np.mean(data_orig == cat) for cat in categories]
+probs_hmm1 = [np.mean(data_hmm1 == cat) for cat in categories]
+probs_hmm2 = [np.mean(data_hmm2 == cat) for cat in categories]
+
+x = np.arange(len(labels))  # Label locations (0, 1, 2)
+width = 0.25                # Width of the bars
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Plot bars with offsets so they appear side-by-side
+# Shift Original to left, HMM1 to center, HMM2 to right
+rects1 = ax.bar(x - width, data_orig, width, label='Original Data', color='#1f77b4')
+rects2 = ax.bar(x, data_hmm1, width, label='HMM1 Sampled', color='#ff7f0e')
+rects3 = ax.bar(x + width, data_hmm2, width, label='HMM2 Sampled', color='#2ca02c')
+
+# 4. Formatting
+ax.set_ylabel('Probability')
+ax.set_title('Comparison of Distributions: Original vs HMM Samples')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
 
 plt.tight_layout()
-# plt.savefig('hmm_results.png')
 plt.show()
-
-# ---------------------------------------------------------
-# 6. Interpret Model Parameters
-# ---------------------------------------------------------
-print("\n--- Model Parameters ---")
-print("Transition Matrix (Probability of moving from State i to State j):")
-print(model.transmat_.round(3))
-
-print("\nEmission Matrix (Probability of observing Death Level k given State i):")
-# Columns correspond to Death Levels: 0, 1, 2 (check le_deaths.classes_ for order)
-df_emission = pd.DataFrame(model.emissionprob_, columns=le_deaths.classes_)
-df_emission.index.name = "Hidden State"
-print(df_emission.round(3))
-
-print("\nInterpretation:")
-print("Look at the Emission Matrix above.")
-print("If a State has a high probability of 'High' deaths, that State likely corresponds to 'Cold' or 'Hot' temperature extremes (depending on the data correlation).")
