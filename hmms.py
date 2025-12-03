@@ -1,10 +1,10 @@
-
 import pandas as pd
 import pymc as pm
 import numpy as np
 import seaborn as sns
 from hmmlearn.hmm import CategoricalHMM
 from matplotlib import pyplot as plt
+from scipy.stats import wasserstein_distance
 
 
 def train_supervised_hmm(states, observations, n_states, n_obs):
@@ -43,18 +43,10 @@ def train_supervised_hmm(states, observations, n_states, n_obs):
 
     return pi, A, B
 
-
-
-
-
-
 df = pd.read_csv(pm.get_data("deaths_and_temps_england_wales.csv"))
 
-temp_discrete = pd.qcut(df['temp'], q=3, labels=False).values.reshape(-1, 1)
-# temp_discrete = temp_discrete.reshape(1, -1)
-# temp_labels = ['Cold', 'Warm', 'Hot']
-deaths_discrete = pd.qcut(df['deaths'], q=3, labels=False).values.reshape(-1, 1)
-# deaths_discrete = deaths_discrete.reshape(1, -1)
+temp_discrete = pd.qcut(df['temp'], q=3, labels=False).values
+deaths_discrete = pd.qcut(df['deaths'], q=3, labels=False).values
 deaths_labels = ['Low', 'Medium', 'High']
 
 hmm1 = CategoricalHMM(n_components=3)
@@ -64,45 +56,42 @@ hmm1.transmat_ = A
 hmm1.emissionprob_ = B
 
 hmm2 = CategoricalHMM(3)
-lengths = [len(deaths_discrete)] # we only have one sequence, so we just take the length of that
-hmm2.fit(deaths_discrete, lengths)
+hmm2.fit(deaths_discrete.reshape(1, -1))
 
-X1_sampled, discard = hmm1.sample(n_samples=10000)
-X2_sampled, discard = hmm2.sample(n_samples=10000)
+# Generate samples
+X_sample_1, Z_sample_1 = hmm1.sample(n_samples=len(deaths_discrete))
+X_sample_2, Z_sample_2 = hmm2.sample(n_samples=len(deaths_discrete))
+
+# Compare Log Likelihoods
+print(f"HMM1 (Supervised) Score:   {hmm1.score(deaths_discrete.reshape(1, -1))}")
+print(f"HMM2 (Unsupervised) Score: {hmm2.score(deaths_discrete.reshape(1, -1))}")
+# Compare Wasserstein distances
+w_dist1 = wasserstein_distance(deaths_discrete, X_sample_1.flatten())
+w_dist2 = wasserstein_distance(deaths_discrete, X_sample_2.flatten())
+print(f"HMM1 Wasserstein Distance: {w_dist1}")
+print(f"HMM2 Wasserstein Distance: {w_dist2}")
 
 
 
+# Plot samples of both hmms against real data
+fig, ax = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
 
-# Plot distributions
-data_orig = deaths_discrete.flatten()
-data_hmm1 = X1_sampled.flatten()
-data_hmm2 = X2_sampled.flatten()
+# Real Data
+sns.countplot(x=deaths_discrete.flatten(), ax=ax[0], color='gray')
+ax[0].set_title("Real Data (Deaths)")
+ax[0].set_xticks([0,1,2])
+ax[0].set_xticklabels(deaths_labels)
 
-categories = [0, 1, 2]
-labels = ['Low', 'Medium', 'High']
+# HMM1 Samples
+sns.countplot(x=X_sample_1.flatten(), ax=ax[1], color='skyblue')
+ax[1].set_title("HMM1 Generated (Supervised)")
+ax[1].set_xticks([0,1,2])
+ax[1].set_xticklabels(deaths_labels)
 
-# List comprehensions to calculate the probability of each category
-probs_orig = [np.mean(data_orig == cat) for cat in categories]
-probs_hmm1 = [np.mean(data_hmm1 == cat) for cat in categories]
-probs_hmm2 = [np.mean(data_hmm2 == cat) for cat in categories]
+# HMM2 Samples
+sns.countplot(x=X_sample_2.flatten(), ax=ax[2], color='salmon')
+ax[2].set_title("HMM2 Generated (Unsupervised)")
+ax[2].set_xticks([0,1,2])
+ax[2].set_xticklabels(deaths_labels)
 
-x = np.arange(len(labels))  # Label locations (0, 1, 2)
-width = 0.25                # Width of the bars
-
-fig, ax = plt.subplots(figsize=(10, 6))
-
-# Plot bars with offsets so they appear side-by-side
-# Shift Original to left, HMM1 to center, HMM2 to right
-rects1 = ax.bar(x - width, data_orig, width, label='Original Data', color='#1f77b4')
-rects2 = ax.bar(x, data_hmm1, width, label='HMM1 Sampled', color='#ff7f0e')
-rects3 = ax.bar(x + width, data_hmm2, width, label='HMM2 Sampled', color='#2ca02c')
-
-# 4. Formatting
-ax.set_ylabel('Probability')
-ax.set_title('Comparison of Distributions: Original vs HMM Samples')
-ax.set_xticks(x)
-ax.set_xticklabels(labels)
-ax.legend()
-
-plt.tight_layout()
 plt.show()

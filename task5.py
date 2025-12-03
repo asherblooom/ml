@@ -32,8 +32,6 @@ def load_cifar10(data_dir):
     return X_train / 255, y_train, X_test / 255, y_test
 
 
-# Load the data
-# You may need to specify ‘data_dir’ the directory of dataset folder
 data_dir = "cifar-10-batches-py"
 X_train, y_train, X_test, y_test = load_cifar10(data_dir)
 
@@ -41,13 +39,13 @@ pca = PCA(n_components=200)
 X_train_reduced = pca.fit_transform(X_train)
 X_test_reduced = pca.transform(X_test)
 
-# Define Hyperparameters to tune
+# Hyperparameters
 param_dist = {
     "criterion": ["gini", "entropy"],
-    "max_depth": [None, 10, 20, 30, 40, 50],  # Specific options
-    "min_samples_split": randint(2, 50),  # Control node splitting
-    "min_samples_leaf": randint(1, 20),  # Control leaf size
-    "max_features": ["sqrt", "log2"],  # Features to consider at each split
+    "max_depth": [None, 10, 20, 30, 40, 50],
+    "min_samples_split": randint(2, 50),
+    "min_samples_leaf": randint(1, 20),
+    "max_features": ["sqrt", "log2"],
 }
 
 dt_clf = DecisionTreeClassifier()
@@ -57,10 +55,10 @@ dt_clf = DecisionTreeClassifier()
 random_search = RandomizedSearchCV(
     estimator=dt_clf,
     param_distributions=param_dist,
-    n_iter=50,  # Number of random combinations to try
-    cv=3,  # 3-fold cross-validation
+    n_iter=100,
+    cv=3,
     scoring="accuracy",
-    n_jobs=-1,  # Use all CPU cores
+    n_jobs=-1,
     verbose=2,
 )
 
@@ -69,7 +67,6 @@ print(f"Best Parameters found: {random_search.best_params_}")
 print(f"Best Cross-Validation Accuracy: {random_search.best_score_:.4f}")
 
 best_clf = random_search.best_estimator_
-# best_clf.fit(X_train_reduced, y_train)
 
 # Evaluate on Test Set
 y_pred = best_clf.predict(X_test_reduced)
