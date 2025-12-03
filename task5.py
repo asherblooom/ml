@@ -7,12 +7,14 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 from scipy.stats import randint
 
+
 def load_batch(batch_path):
-    with open(batch_path, 'rb') as f:
-        batch = pickle.load(f, encoding='bytes')
-        X = batch[b'data']
-        y = np.array(batch[b'labels'])
+    with open(batch_path, "rb") as f:
+        batch = pickle.load(f, encoding="bytes")
+        X = batch[b"data"]
+        y = np.array(batch[b"labels"])
         return X, y
+
 
 def load_cifar10(data_dir):
     X_all = []
@@ -27,7 +29,8 @@ def load_cifar10(data_dir):
     y_train = np.concatenate(y_all)
     # test batch
     X_test, y_test = load_batch(os.path.join(data_dir, "test_batch"))
-    return X_train/255, y_train, X_test/255, y_test
+    return X_train / 255, y_train, X_test / 255, y_test
+
 
 # Load the data
 # You may need to specify ‘data_dir’ the directory of dataset folder
@@ -40,11 +43,11 @@ X_test_reduced = pca.transform(X_test)
 
 # Define Hyperparameters to tune
 param_dist = {
-        'criterion': ['gini', 'entropy'],
-        'max_depth': [None, 10, 20, 30, 40, 50],  # Specific options
-        'min_samples_split': randint(2, 50),    # Control node splitting
-        'min_samples_leaf': randint(1, 20),     # Control leaf size
-        'max_features': ['sqrt', 'log2'], # Features to consider at each split
+    "criterion": ["gini", "entropy"],
+    "max_depth": [None, 10, 20, 30, 40, 50],  # Specific options
+    "min_samples_split": randint(2, 50),  # Control node splitting
+    "min_samples_leaf": randint(1, 20),  # Control leaf size
+    "max_features": ["sqrt", "log2"],  # Features to consider at each split
 }
 
 dt_clf = DecisionTreeClassifier()
@@ -52,17 +55,17 @@ dt_clf = DecisionTreeClassifier()
 # Perform Cross-Validation
 # n_jobs=-1 uses all available processor cores
 random_search = RandomizedSearchCV(
-    estimator=dt_clf, 
-    param_distributions=param_dist, 
-    n_iter=50,          # Number of random combinations to try
-    cv=3,               # 3-fold cross-validation
-    scoring='accuracy', 
-    n_jobs=-1,          # Use all CPU cores
+    estimator=dt_clf,
+    param_distributions=param_dist,
+    n_iter=50,  # Number of random combinations to try
+    cv=3,  # 3-fold cross-validation
+    scoring="accuracy",
+    n_jobs=-1,  # Use all CPU cores
     verbose=2,
 )
 
 random_search.fit(X_train_reduced, y_train)
-print(f"\nBest Parameters found: {random_search.best_params_}")
+print(f"Best Parameters found: {random_search.best_params_}")
 print(f"Best Cross-Validation Accuracy: {random_search.best_score_:.4f}")
 
 best_clf = random_search.best_estimator_
@@ -72,3 +75,4 @@ best_clf = random_search.best_estimator_
 y_pred = best_clf.predict(X_test_reduced)
 test_acc = accuracy_score(y_test, y_pred)
 print(f"Final Test Set Accuracy: {test_acc:.4f}")
+
