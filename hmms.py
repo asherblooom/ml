@@ -94,4 +94,4 @@ ax[2].set_title("HMM2 Generated (Unsupervised)")
 ax[2].set_xticks([0,1,2])
 ax[2].set_xticklabels(deaths_labels)
 
-plt.show()
+plt.savefig("hmmSamples.png")

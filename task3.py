@@ -35,61 +35,37 @@ n_features = X.shape[1]
 
 # 3. Build Bayesian Model
 with pm.Model() as model:
-    # --- Priors ---
-    # We use weakly informative priors since the data is standardized.
-    # Intercept (alpha): Centered at 0, wide sigma
     intercept = pm.Normal("intercept", mu=0, sigma=1)
-
-    # Coefficients (betas): Centered at 0, wide sigma
-    # We use a single vector shape for efficiency
     coefficients = pm.Normal("coefficients", mu=0, sigma=1, shape=n_features)
-
-    # Noise (sigma)
     sigma = pm.Uniform("sigma", lower=0, upper=1)
-
-    # --- Model Expectation ---
-    # mu = alpha + beta * X
     mu = intercept + pm.math.dot(X, coefficients)
-
-    # --- Likelihood ---
     y_obs = pm.Normal("y_obs", mu=mu, sigma=sigma, observed=y)
-
-    # --- MCMC Sampling ---
     idata = pm.sample(2000, chains=4, step=pm.NUTS())
 
 summary = az.summary(idata, var_names=["intercept", "coefficients", "sigma"])
 
-print("\nPosterior Means for Coefficients:")
-print("-" * 50)
-print(f"{'Feature':<20} | {'Mean Est.':<10} | {'94% HDI':<15}")
-print("-" * 50)
+print("Posterior Means for Coefficients:")
+
+y_std_dev = y_scaler.scale_[0]
+y_mean = y_scaler.mean_[0]
+
+print("\n" + "=" * 40)
+print(f"{'Feature':<25} | {'Mean Est.':<12}")
+print("=" * 40)
 
 # Print Intercept
 intercept_mean = summary.loc["intercept", "mean"]
 print(
-    f"{'Intercept':<20} | {intercept_mean:<10.4f} | [{summary.loc['intercept', 'hdi_3%']:.3f}, {summary.loc['intercept', 'hdi_97%']:.3f}]"
+    f"{'Intercept':<25} | {intercept_mean:<10.4f}"
 )
 
-# 1. Get the scaling factor (Standard Deviation of original charges)
-# y_scaler.scale_ stores the standard deviation (sigma)
-y_std_dev = y_scaler.scale_[0]
-y_mean = y_scaler.mean_[0]
-
-print("\n" + "=" * 60)
-print(f"{'Feature':<25} | {'Mean Est.':<12} | {'Real Dollar Impact':<20}")
-print("=" * 60)
-
-# 2. Iterate and Un-scale
 for i, feature in enumerate(feature_names):
     row_name = f"coefficients[{i}]"
     scaled_mean = summary.loc[row_name, "mean"]
-    # convert to dollars
-    dollar_impact = scaled_mean * y_std_dev
-    print(f"{feature:<25} | {scaled_mean:<12.3f} | ${dollar_impact:,.2f}")
-print("-" * 60)
-# The model's sigma is also scaled. We multiply it by y_std_dev to get the prediction error in dollars.
+    print(f"{feature:<25} | {scaled_mean:<12.3f}")
+print("-" * 40)
 scaled_sigma = summary.loc["sigma", "mean"]
 dollar_sigma = scaled_sigma * y_std_dev
-print(f"{'Noise (Sigma)':<25} | {scaled_sigma:<12.3f} | ${dollar_sigma:,.2f}")
-print("=" * 60)
+print(f"{'Noise (Sigma)':<25} | {scaled_sigma:<12.3f}")
+print("=" * 40)
 

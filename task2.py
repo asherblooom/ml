@@ -100,7 +100,6 @@ y_train_orig = y_scaler.inverse_transform(y_train)
 train_rmse = np.sqrt(mean_squared_error(y_train_orig, train_preds))
 test_rmse = np.sqrt(mean_squared_error(y_test_orig, test_preds))
 
-print("-" * 30)
 print(f"Training RMSE: {train_rmse:.2f}")
 print(f"Test RMSE:     {test_rmse:.2f}")
 
@@ -111,5 +110,4 @@ plt.plot([y_test_orig.min(), y_test_orig.max()], [y_test_orig.min(), y_test_orig
 plt.xlabel('Actual Charges')
 plt.ylabel('Predicted Charges')
 plt.title('PyTorch NN: Predicted vs Actual')
-plt.savefig('actual_vs_predicted_plot_nn.png')
-# plt.show()
+plt.show()

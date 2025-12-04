@@ -26,7 +26,6 @@ def load_cifar10(data_dir):
         return X_train/255, y_train, X_test/255, y_test
 
 # Load the data
-# You may need to specify ‘data_dir’ the directory of dataset folder
 data_dir = "cifar-10-batches-py"
 X_train, y_train, X_test, y_test = load_cifar10(data_dir)
 
